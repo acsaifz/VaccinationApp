@@ -24,6 +24,7 @@ public class DataSourceService {
                 .dataSource(dataSource)
                 .load();
 
+        flyway.clean();
         flyway.migrate();
 
         this.dataSource = dataSource;

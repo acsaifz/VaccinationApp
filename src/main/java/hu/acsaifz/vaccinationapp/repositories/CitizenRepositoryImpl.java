@@ -2,6 +2,11 @@ package hu.acsaifz.vaccinationapp.repositories;
 
 import hu.acsaifz.vaccinationapp.models.Citizen;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.support.TransactionCallbackWithoutResult;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import javax.sql.DataSource;
 import java.util.List;
@@ -22,6 +27,27 @@ public class CitizenRepositoryImpl implements CitizenRepository{
             ps.setInt(3, citizen.getAge());
             ps.setString(4, citizen.getEmail());
             ps.setString(5, citizen.getSsn());
+        });
+    }
+
+    @Override
+    public void saveAll(List<Citizen> citizens) {
+        DataSourceTransactionManager transactionManager = new DataSourceTransactionManager(jdbcTemplate.getDataSource());
+        TransactionTemplate template = new TransactionTemplate(transactionManager);
+        template.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+
+        template.execute(new TransactionCallbackWithoutResult(){
+
+            @Override
+            protected void doInTransactionWithoutResult(TransactionStatus status) {
+                jdbcTemplate.batchUpdate("INSERT INTO `citizens` (`name`, `zip`, `age`, `email`, `ssn`) VALUES(?,?,?,?,?)", citizens,50,(ps, citizen) -> {
+                    ps.setString(1, citizen.getName());
+                    ps.setString(2, citizen.getZipCode());
+                    ps.setInt(3,citizen.getAge());
+                    ps.setString(4, citizen.getEmail());
+                    ps.setString(5, citizen.getSsn());
+                });
+            }
         });
     }
 

@@ -60,4 +60,19 @@ public class Citizen {
     public SortedSet<Vaccination> getVaccinations() {
         return new TreeSet<>(vaccinations);
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        Citizen citizen = (Citizen) o;
+
+        return ssn.equals(citizen.ssn);
+    }
+
+    @Override
+    public int hashCode() {
+        return ssn.hashCode();
+    }
 }

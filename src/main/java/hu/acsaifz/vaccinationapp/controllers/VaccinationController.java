@@ -5,8 +5,10 @@ import hu.acsaifz.vaccinationapp.services.CitizenService;
 import hu.acsaifz.vaccinationapp.services.CityService;
 import hu.acsaifz.vaccinationapp.services.DataSourceService;
 import hu.acsaifz.vaccinationapp.services.ValidatorService;
+import org.springframework.dao.DuplicateKeyException;
 
 import javax.sql.DataSource;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
@@ -198,6 +200,21 @@ public class VaccinationController {
     }
 
     private void massRegistration() {
+        System.out.println(LINE);
+        System.out.println("Tömeges regisztráció fájlból");
+        System.out.println(LINE);
+        System.out.print("Adja meg az adatokat tartalmazó csv fájl elérési útvonalát: ");
+        try{
+            String path = scanner.nextLine();
+            citizenService.massRegistration(Paths.get(path));
+            System.out.println("Adatok sikeresen regisztrálva.");
+        }catch (IllegalStateException ise){
+            System.out.println("A rendszer nem találja a megadott fájlt!");
+        }catch (DuplicateKeyException dke){
+            System.out.println("Adatok regisztrálása sikertelen!");
+        }finally {
+            System.out.println(LINE);
+        }
     }
 
     private void generation() {

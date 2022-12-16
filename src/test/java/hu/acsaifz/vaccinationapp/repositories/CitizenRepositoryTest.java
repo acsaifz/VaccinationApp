@@ -5,6 +5,7 @@ import hu.acsaifz.vaccinationapp.models.Citizen;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.dao.DuplicateKeyException;
 
 import java.util.List;
 
@@ -46,4 +47,36 @@ class CitizenRepositoryTest {
         assertEquals(expected2.getSsn(), result.get(1).getSsn());
     }
 
+    @Test
+    void testSaveAll(){
+        List<Citizen> expected = List.of(
+                new Citizen("John Doe", "1069", 29, "john.doe@domain.com","123456788"),
+                new Citizen("Jane Doe", "1111",21, "jane.doe@domain.com","925862035"),
+                new Citizen("Jack Doe", "2243",33, "jane.doe@domain.com","111383889"),
+                new Citizen("Kiley Galpin","5064",70,"kgalpinh@cbsnews.com","085168875")
+        );
+
+        citizenRepository.saveAll(expected);
+
+        List<Citizen> result = citizenRepository.findAll();
+
+        assertEquals(4, result.size());
+        assertEquals(expected, result);
+    }
+
+    @Test
+    void testSaveAllWhenListContainSameSsn(){
+        List<Citizen> expected = List.of(
+                new Citizen("John Doe", "1069", 29, "john.doe@domain.com","123456788"),
+                new Citizen("Jane Doe", "1111",21, "jane.doe@domain.com","925862035"),
+                new Citizen("Jack Doe", "2243",33, "jane.doe@domain.com","111383889"),
+                new Citizen("Kiley Galpin","5064",70,"kgalpinh@cbsnews.com","925862035")
+        );
+
+        assertThrows(DuplicateKeyException.class,() -> citizenRepository.saveAll(expected));
+
+        List<Citizen> result = citizenRepository.findAll();
+
+        assertTrue(result.isEmpty());
+    }
 }
