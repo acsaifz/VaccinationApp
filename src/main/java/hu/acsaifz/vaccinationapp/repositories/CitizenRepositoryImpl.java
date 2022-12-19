@@ -73,15 +73,17 @@ public class CitizenRepositoryImpl implements CitizenRepository{
                 "SELECT `citizens`.`id`, `citizens`.`name`, `citizens`.`zip`, `citizens`.`age`, `citizens`.`email`, `citizens`.`ssn` " +
                     "FROM `citizens` " +
                     "LEFT JOIN ( " +
-                        "SELECT vaccinations.citizen_id FROM `vaccinations` " +
+                        "SELECT `vaccinations`.`citizen_id`, `vaccinations`.`vaccination_date` " +
+                        "FROM `vaccinations` " +
                         "WHERE `vaccinations`.`status` = ? " +
-                        "GROUP BY `vaccinations`.`citizen_id` " +
-                        "HAVING DATEDIFF(CURRENT_TIMESTAMP(), MAX(`vaccinations`.`vaccination_date`)) >= 15 " +
                     ") AS `vaccinations` " +
                     "ON `citizens`.`id` = `vaccinations`.`citizen_id` " +
                     "WHERE `citizens`.`zip` = ? " +
-                    "GROUP BY `citizens`.`id` " +
-                    "HAVING COUNT(`vaccinations`.`citizen_id`) < 2 " +
+                    "GROUP BY `citizens`.`id`, `citizens`.`age`, `citizens`.`name` " +
+                    "HAVING COUNT(`vaccinations`.`citizen_id`) < 2 AND (" +
+                        "DATEDIFF(CURRENT_TIMESTAMP(), MAX(`vaccinations`.`vaccination_date`)) >= 15 " +
+                        "OR " +
+                        "max(`vaccinations`.`vaccination_date`) is null) " +
                     "ORDER BY `citizens`.`age` DESC, `citizens`.`name` ASC " +
                     "LIMIT 16", new CitizenMapper(), VaccinationStatus.SUCCESSFUL.toString(), zipCode
         );
