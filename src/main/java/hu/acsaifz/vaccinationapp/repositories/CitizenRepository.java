@@ -10,4 +10,6 @@ public interface CitizenRepository {
     void saveAll(List<Citizen> citizens);
 
     List<Citizen> findAll();
+
+    List<Citizen> findCitizensByZipCodeForDailyVaccinations(String zipCode);
 }

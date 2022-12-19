@@ -7,13 +7,17 @@ import hu.acsaifz.vaccinationapp.repositories.CitizenRepositoryImpl;
 import javax.sql.DataSource;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.nio.file.Path;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 
 public class CitizenService {
     private static final String CSV_SEPARATOR = ";";
+    private static final String VACCINATION_PLAN_CSV_HEADER = "Időpont;Név;Irányítószám;Életkor;E-mail cím;TAJ szám\n";
     private final CitizenRepository citizenRepository;
 
     public CitizenService(DataSource dataSource){
@@ -72,5 +76,44 @@ public class CitizenService {
         }
 
         return citizens;
+    }
+
+    public List<Citizen> findCitizensByZipCodeForDailyVaccinations(String zipCode) {
+        return citizenRepository.findCitizensByZipCodeForDailyVaccinations(zipCode);
+    }
+
+    public boolean generateVaccinationPlan(String zipCode, String fileName) {
+        List<Citizen> citizens = this.findCitizensByZipCodeForDailyVaccinations(zipCode);
+
+        if (citizens.isEmpty()){
+            System.out.println("Oltási lista generálása sikertelen! Nincs regisztrált személy ezen az irányítószámon!");
+            return false;
+        }
+
+        return this.writeCitizensToFile(fileName, citizens);
+    }
+
+    private boolean writeCitizensToFile(String fileName, List<Citizen> citizens){
+        try(FileWriter writer = new FileWriter(fileName)){
+            writer.write(VACCINATION_PLAN_CSV_HEADER);
+            LocalTime timeOfVaccination = LocalTime.of(8,0);
+            for (Citizen citizen: citizens){
+                writer.write(this.createLineFromCitizen(citizen, timeOfVaccination));
+                timeOfVaccination = timeOfVaccination.plusMinutes(30);
+            }
+            return true;
+        } catch (IOException e) {
+            System.out.println("Oltási lista generálása sikertelen! Fájl írási probléma.");
+            return false;
+        }
+    }
+
+    private String createLineFromCitizen(Citizen citizen, LocalTime time){
+        return time.toString() + CSV_SEPARATOR +
+                citizen.getName() + CSV_SEPARATOR +
+                citizen.getZipCode() + CSV_SEPARATOR +
+                citizen.getAge() + CSV_SEPARATOR +
+                citizen.getEmail() + CSV_SEPARATOR +
+                citizen.getSsn() + "\n";
     }
 }

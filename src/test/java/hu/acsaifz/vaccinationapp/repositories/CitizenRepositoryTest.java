@@ -79,4 +79,21 @@ class CitizenRepositoryTest {
 
         assertTrue(result.isEmpty());
     }
+
+    @Test
+    void testFindCitizensByZipCodeForDailyVaccinations(){
+        List<Citizen> citizens = List.of(
+                new Citizen("John Doe", "1069", 29, "john.doe@domain.com","123456788"),
+                new Citizen("Jane Doe", "1069",21, "jane.doe@domain.com","925862035"),
+                new Citizen("Jack Doe", "2243",33, "jane.doe@domain.com","111383889"),
+                new Citizen("Kiley Galpin","5064",70,"kgalpinh@cbsnews.com","085168875")
+        );
+
+        citizenRepository.saveAll(citizens);
+        List<Citizen> result = citizenRepository.findCitizensByZipCodeForDailyVaccinations("1069");
+
+        assertEquals(2, result.size());
+        assertEquals("1069", result.get(0).getZipCode());
+        assertEquals("1069", result.get(1).getZipCode());
+    }
 }

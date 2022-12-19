@@ -64,7 +64,7 @@ public class VaccinationController {
         System.out.println(LINE);
 
         String name = this.getCitizenName();
-        String zipCode = this.getCitizenCipCode();
+        String zipCode = this.getCitizenCipCode("Kérem adja meg az az állampolgár irányítószámát: ");
         int age = this.getCitizenAge();
         String email = this.getCitizenEmail();
         String ssn = this.getCitizenSsn();
@@ -136,12 +136,12 @@ public class VaccinationController {
         return 0;
     }
 
-    private String getCitizenCipCode() {
+    private String getCitizenCipCode(String message) {
         String zipCode;
         List<String> cities = new ArrayList<>();
 
         do {
-            System.out.print("Kérem adja meg az az állampolgár irányítószámát: ");
+            System.out.print(message);
             zipCode = scanner.nextLine();
 
             if (!validatorService.isValidZipCode(zipCode)){
@@ -218,6 +218,19 @@ public class VaccinationController {
     }
 
     private void generation() {
+        System.out.println(LINE);
+        System.out.println("Oltási lista generálása");
+        System.out.println(LINE);
+
+        System.out.print("Adja meg a fájl nevét: ");
+        String fileName = scanner.nextLine();
+
+        String zipCode = this.getCitizenCipCode("Kérem adja meg az irányítószámot: ");
+
+        if(citizenService.generateVaccinationPlan(zipCode, fileName)){
+            System.out.println("Oltási lista sikeresen legenerálva!");
+        }
+        System.out.println(LINE);
     }
 
     private void vaccinate() {

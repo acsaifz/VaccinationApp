@@ -1,6 +1,8 @@
 package hu.acsaifz.vaccinationapp.repositories;
 
 import hu.acsaifz.vaccinationapp.models.Citizen;
+import hu.acsaifz.vaccinationapp.models.VaccinationStatus;
+import hu.acsaifz.vaccinationapp.repositories.mapper.CitizenMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
@@ -62,6 +64,26 @@ public class CitizenRepositoryImpl implements CitizenRepository{
                         rs.getString("email"),
                         rs.getString("ssn")
                 )
+        );
+    }
+
+    @Override
+    public List<Citizen> findCitizensByZipCodeForDailyVaccinations(String zipCode) {
+        return jdbcTemplate.query(
+                "SELECT `citizens`.`id`, `citizens`.`name`, `citizens`.`zip`, `citizens`.`age`, `citizens`.`email`, `citizens`.`ssn` " +
+                    "FROM `citizens` " +
+                    "LEFT JOIN ( " +
+                        "SELECT vaccinations.citizen_id FROM `vaccinations` " +
+                        "WHERE `vaccinations`.`status` = ? " +
+                        "GROUP BY `vaccinations`.`citizen_id` " +
+                        "HAVING DATEDIFF(CURRENT_TIMESTAMP(), MAX(`vaccinations`.`vaccination_date`)) >= 15 " +
+                    ") AS `vaccinations` " +
+                    "ON `citizens`.`id` = `vaccinations`.`citizen_id` " +
+                    "WHERE `citizens`.`zip` = ? " +
+                    "GROUP BY `citizens`.`id` " +
+                    "HAVING COUNT(`vaccinations`.`citizen_id`) < 2 " +
+                    "ORDER BY `citizens`.`age` DESC, `citizens`.`name` ASC " +
+                    "LIMIT 16", new CitizenMapper(), VaccinationStatus.SUCCESSFUL.toString(), zipCode
         );
     }
 }
