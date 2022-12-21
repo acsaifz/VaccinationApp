@@ -1,16 +1,18 @@
 package hu.acsaifz.vaccinationapp.controllers;
 
 import hu.acsaifz.vaccinationapp.models.Citizen;
-import hu.acsaifz.vaccinationapp.services.CitizenService;
-import hu.acsaifz.vaccinationapp.services.CityService;
-import hu.acsaifz.vaccinationapp.services.DataSourceService;
-import hu.acsaifz.vaccinationapp.services.ValidatorService;
+import hu.acsaifz.vaccinationapp.models.Vaccination;
+import hu.acsaifz.vaccinationapp.models.VaccinationStatus;
+import hu.acsaifz.vaccinationapp.models.Vaccine;
+import hu.acsaifz.vaccinationapp.services.*;
 import org.springframework.dao.DuplicateKeyException;
 
 import javax.sql.DataSource;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Scanner;
 
 public class VaccinationController {
@@ -19,11 +21,15 @@ public class VaccinationController {
     private final ValidatorService validatorService = new ValidatorService();
     private final CityService cityService;
     private final CitizenService citizenService;
+    private final VaccinationService vaccinationService;
+    private final VaccineService vaccineService;
 
     public VaccinationController(){
         DataSource dataSource = DataSourceService.getDataSource();
         cityService = new CityService(dataSource);
         citizenService = new CitizenService(dataSource);
+        vaccinationService = new VaccinationService(dataSource);
+        vaccineService = new VaccineService(dataSource);
     }
 
     public void run(){
@@ -64,7 +70,7 @@ public class VaccinationController {
         System.out.println(LINE);
 
         String name = this.getCitizenName();
-        String zipCode = this.getCitizenCipCode("Kérem adja meg az az állampolgár irányítószámát: ");
+        String zipCode = this.getCitizenCipCode("Kérem adja meg az állampolgár irányítószámát: ");
         int age = this.getCitizenAge();
         String email = this.getCitizenEmail();
         String ssn = this.getCitizenSsn();
@@ -81,7 +87,7 @@ public class VaccinationController {
         String ssn;
 
         do {
-            System.out.print("Kérem adja meg az állampolgár TAJ számát");
+            System.out.print("Kérem adja meg az állampolgár TAJ számát: ");
             ssn = scanner.nextLine();
 
             if (!validatorService.isValidSsn(ssn)){
@@ -234,6 +240,98 @@ public class VaccinationController {
     }
 
     private void vaccinate() {
+        System.out.println(LINE);
+        System.out.println("Oltás beadása");
+        System.out.println(LINE);
+
+        Citizen citizen = this.getCitizenBySsn();
+
+        if (!validatorService.isCitizenVaccinateAble(citizen)){
+            System.out.println("Sajnos a páciens nem beoltható!");
+            return;
+        }
+
+        if (citizen.getNumberOfVaccination() > 0) {
+            this.printVaccinationData(citizen.getLastVaccination());
+        }
+
+        this.administrateVaccination(citizen);
+    }
+
+    private void administrateVaccination(Citizen citizen) {
+        Vaccine vaccine;
+        if (citizen.getNumberOfVaccination() == 0){
+            vaccine = this.getVaccine();
+        }else{
+            vaccine = citizen.getLastVaccination().getVaccine();
+            System.out.println("A pácienst " + vaccine.getName() + " vakcinával kell beoltani. Folytatáshoz nyomja le az [Enter] billentyűt");
+            scanner.nextLine();
+        }
+
+        Vaccination vaccination = new Vaccination(LocalDateTime.now(), VaccinationStatus.SUCCESSFUL,null, vaccine);
+        vaccinationService.save(vaccination,citizen.getId());
+        System.out.println("Oltás sikeresen elmentve.");
+    }
+
+    private Vaccine getVaccine() {
+        List<Vaccine> vaccines = vaccineService.findAll();
+        Vaccine vaccine;
+
+        System.out.println(LINE);
+
+        do{
+            this.printVaccinesMenu(vaccines);
+            System.out.println("Válassz a vakcinák közül: ");
+            String input = scanner.nextLine();
+            try{
+                int vaccineId = Integer.parseInt(input);
+                vaccine = this.searchVaccine(vaccines, vaccineId);
+            } catch (NumberFormatException nfe){
+                vaccine = null;
+            }
+
+            if (vaccine == null){
+                System.out.println("Nincs ilyen számú vakcina!");
+            }
+        }while(vaccine == null);
+
+        return vaccine;
+    }
+
+    private Vaccine searchVaccine(List<Vaccine> vaccines, int vaccineId) {
+        for (Vaccine vaccine: vaccines){
+            if (vaccine.getId() == vaccineId){
+                return vaccine;
+            }
+        }
+
+        return null;
+    }
+
+    private void printVaccinesMenu(List<Vaccine> vaccines) {
+        for (Vaccine vaccine: vaccines){
+            System.out.println(vaccine.getId() + ". " + vaccine.getName());
+        }
+    }
+
+    private void printVaccinationData(Vaccination vaccination){
+        System.out.println("Előző oltás dátuma: " + vaccination.getVaccinationDate());
+        System.out.println("Előző oltás gyártója: " + vaccination.getVaccine().getName());
+    }
+
+    private Citizen getCitizenBySsn() {
+        Optional<Citizen> result;
+        do {
+            System.out.print("Adja meg a páciens TAJ számát: ");
+            String ssn = scanner.nextLine();
+            result = citizenService.findCitizenBySsn(ssn);
+
+            if (result.isEmpty()){
+                System.out.println("Nincs ilyen TAJ számmal regisztrált személy!");
+            }
+        } while(result.isEmpty());
+
+        return result.get();
     }
 
     private void vaccinationFailure() {

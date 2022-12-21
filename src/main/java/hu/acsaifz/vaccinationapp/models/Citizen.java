@@ -1,5 +1,6 @@
 package hu.acsaifz.vaccinationapp.models;
 
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.SortedSet;
@@ -28,10 +29,21 @@ public class Citizen {
         this.id = id;
     }
 
+    public LocalDateTime getDateOfLastVaccination(){
+        return this.getLastVaccination().getVaccinationDate();
+    }
+
+    public Vaccination getLastVaccination(){
+        return vaccinations.last();
+    }
+
+    public int getNumberOfVaccination(){
+        return vaccinations.size();
+    }
+
     public void addVaccinations(Collection<Vaccination> vaccinations){
         this.vaccinations.addAll(vaccinations);
     }
-
 
     public long getId() {
         return id;

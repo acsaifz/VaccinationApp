@@ -1,5 +1,10 @@
 package hu.acsaifz.vaccinationapp.services;
 
+import hu.acsaifz.vaccinationapp.models.Citizen;
+import hu.acsaifz.vaccinationapp.models.Vaccination;
+
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.regex.Pattern;
 
 public class ValidatorService {
@@ -64,5 +69,10 @@ public class ValidatorService {
         return s != null && Pattern.compile(regexPattern)
                 .matcher(s)
                 .matches();
+    }
+
+    public boolean isCitizenVaccinateAble(Citizen citizen) {
+        return citizen.getNumberOfVaccination() == 0 ||
+                (citizen.getNumberOfVaccination() == 1 && citizen.getDateOfLastVaccination().until(LocalDateTime.now(), ChronoUnit.DAYS) > 15);
     }
 }

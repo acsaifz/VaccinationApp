@@ -1,6 +1,7 @@
 package hu.acsaifz.vaccinationapp.services;
 
 import hu.acsaifz.vaccinationapp.models.Citizen;
+import hu.acsaifz.vaccinationapp.models.Vaccination;
 import hu.acsaifz.vaccinationapp.repositories.CitizenRepository;
 import hu.acsaifz.vaccinationapp.repositories.CitizenRepositoryImpl;
 
@@ -11,21 +12,25 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.LocalTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Scanner;
+import java.util.*;
 
 public class CitizenService {
     private static final String CSV_SEPARATOR = ";";
     private static final String VACCINATION_PLAN_CSV_HEADER = "Időpont;Név;Irányítószám;Életkor;E-mail cím;TAJ szám\n";
     private final CitizenRepository citizenRepository;
+    private final VaccinationService vaccinationService;
 
     public CitizenService(DataSource dataSource){
         citizenRepository = new CitizenRepositoryImpl(dataSource);
+        vaccinationService = new VaccinationService(dataSource);
     }
 
     public void save(Citizen citizen){
-        citizenRepository.save(citizen);
+        long citizenId = citizenRepository.save(citizen);
+        if (citizen.getNumberOfVaccination() > 0){
+            SortedSet<Vaccination> vaccinations = citizen.getVaccinations();
+            vaccinations.forEach(vaccination -> vaccinationService.save(vaccination, citizenId));
+        }
     }
 
     public void saveAll(List<Citizen> citizens){
@@ -115,5 +120,19 @@ public class CitizenService {
                 citizen.getAge() + CSV_SEPARATOR +
                 citizen.getEmail() + CSV_SEPARATOR +
                 citizen.getSsn() + "\n";
+    }
+
+    public Optional<Citizen> findCitizenBySsn(String ssn){
+        Optional<Citizen> result = citizenRepository.findCitizenBySsn(ssn);
+
+        if (result.isPresent()){
+            Citizen citizen = result.get();
+            List<Vaccination> vaccinations = vaccinationService.findSuccessfulVaccinationsByCitizenId(citizen.getId());
+            if (!vaccinations.isEmpty()) {
+                citizen.addVaccinations(vaccinations);
+            }
+        }
+
+        return result;
     }
 }

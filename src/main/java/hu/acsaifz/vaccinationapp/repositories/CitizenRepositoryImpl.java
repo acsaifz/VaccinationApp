@@ -5,13 +5,18 @@ import hu.acsaifz.vaccinationapp.models.VaccinationStatus;
 import hu.acsaifz.vaccinationapp.repositories.mapper.CitizenMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+import org.springframework.jdbc.support.GeneratedKeyHolder;
+import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionCallbackWithoutResult;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import javax.sql.DataSource;
+import java.sql.PreparedStatement;
+import java.sql.Statement;
 import java.util.List;
+import java.util.Optional;
 
 public class CitizenRepositoryImpl implements CitizenRepository{
     private final JdbcTemplate jdbcTemplate;
@@ -22,14 +27,22 @@ public class CitizenRepositoryImpl implements CitizenRepository{
 
 
     @Override
-    public void save(Citizen citizen) {
-        jdbcTemplate.update("INSERT INTO `citizens`(`name`, `zip`, `age`, `email`, `ssn`) VALUES (?,?,?,?,?) ", ps -> {
+    public long save(Citizen citizen) {
+        KeyHolder holder = new GeneratedKeyHolder();
+
+        jdbcTemplate.update(con -> {
+            PreparedStatement ps = con.prepareStatement("INSERT INTO `citizens`(`name`, `zip`, `age`, `email`, `ssn`) VALUES (?,?,?,?,?)", Statement.RETURN_GENERATED_KEYS);
+
             ps.setString(1, citizen.getName());
             ps.setString(2, citizen.getZipCode());
             ps.setInt(3, citizen.getAge());
             ps.setString(4, citizen.getEmail());
             ps.setString(5, citizen.getSsn());
-        });
+
+            return ps;
+        }, holder);
+
+        return holder.getKey().longValue();
     }
 
     @Override
@@ -87,5 +100,16 @@ public class CitizenRepositoryImpl implements CitizenRepository{
                     "ORDER BY `citizens`.`age` DESC, `citizens`.`name` ASC " +
                     "LIMIT 16", new CitizenMapper(), VaccinationStatus.SUCCESSFUL.toString(), zipCode
         );
+    }
+
+    @Override
+    public Optional<Citizen> findCitizenBySsn(String ssn) {
+        List<Citizen> result = jdbcTemplate.query("SELECT * FROM `citizens` WHERE `ssn` = ?", new CitizenMapper(), ssn);
+
+        if (result.isEmpty()){
+            return Optional.empty();
+        }
+
+        return Optional.of(result.get(0));
     }
 }
