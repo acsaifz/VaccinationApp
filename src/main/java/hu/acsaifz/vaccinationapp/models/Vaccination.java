@@ -16,6 +16,10 @@ public class Vaccination {
         this.note = note;
     }
 
+    public Vaccination(LocalDateTime vaccinationDate, VaccinationStatus status, Vaccine vaccine){
+        this(vaccinationDate,status,null,vaccine);
+    }
+
     public Vaccination(LocalDateTime vaccinationDate, VaccinationStatus status, String note, Vaccine vaccine) {
         this(vaccinationDate, status, note);
         this.vaccine = vaccine;

@@ -78,7 +78,6 @@ public class VaccinationController {
         Citizen citizen = new Citizen(name, zipCode, age, email, ssn);
         citizenService.save(citizen);
 
-        System.out.println(LINE);
         System.out.println("Állampolgár sikeresen regisztrálva.");
         System.out.println(LINE);
     }
@@ -245,13 +244,17 @@ public class VaccinationController {
         System.out.println(LINE);
 
         Citizen citizen = this.getCitizenBySsn();
+        int numberOfVaccination = citizen.getNumberOfVaccination();
 
         if (!validatorService.isCitizenVaccinateAble(citizen)){
-            System.out.println("Sajnos a páciens nem beoltható!");
+            System.out.println("A páciens nem beoltható: " +
+                    (numberOfVaccination == 2 ? "Már rendelkezik két oltással." : "Kevesebb, mint 15 napja kapta az első oltást."));
+            System.out.println(LINE);
+            citizen.getVaccinations().forEach(this::printVaccinationData);
             return;
         }
 
-        if (citizen.getNumberOfVaccination() > 0) {
+        if (numberOfVaccination > 0) {
             this.printVaccinationData(citizen.getLastVaccination());
         }
 
@@ -268,20 +271,19 @@ public class VaccinationController {
             scanner.nextLine();
         }
 
-        Vaccination vaccination = new Vaccination(LocalDateTime.now(), VaccinationStatus.SUCCESSFUL,null, vaccine);
+        Vaccination vaccination = new Vaccination(LocalDateTime.now(), VaccinationStatus.SUCCESSFUL, vaccine);
         vaccinationService.save(vaccination,citizen.getId());
         System.out.println("Oltás sikeresen elmentve.");
+        System.out.println(LINE);
     }
 
     private Vaccine getVaccine() {
         List<Vaccine> vaccines = vaccineService.findAll();
         Vaccine vaccine;
 
-        System.out.println(LINE);
-
         do{
             this.printVaccinesMenu(vaccines);
-            System.out.println("Válassz a vakcinák közül: ");
+            System.out.print("Válassz a vakcinák közül: ");
             String input = scanner.nextLine();
             try{
                 int vaccineId = Integer.parseInt(input);
@@ -293,6 +295,7 @@ public class VaccinationController {
             if (vaccine == null){
                 System.out.println("Nincs ilyen számú vakcina!");
             }
+            System.out.println(LINE);
         }while(vaccine == null);
 
         return vaccine;
@@ -309,14 +312,18 @@ public class VaccinationController {
     }
 
     private void printVaccinesMenu(List<Vaccine> vaccines) {
+        System.out.println("Vakcinák:");
+        System.out.println(LINE);
         for (Vaccine vaccine: vaccines){
             System.out.println(vaccine.getId() + ". " + vaccine.getName());
         }
+        System.out.println(LINE);
     }
 
     private void printVaccinationData(Vaccination vaccination){
-        System.out.println("Előző oltás dátuma: " + vaccination.getVaccinationDate());
-        System.out.println("Előző oltás gyártója: " + vaccination.getVaccine().getName());
+        System.out.println("Oltás dátuma: " + vaccination.getVaccinationDate());
+        System.out.println("Oltás gyártója: " + vaccination.getVaccine().getName());
+        System.out.println(LINE);
     }
 
     private Citizen getCitizenBySsn() {
@@ -329,12 +336,42 @@ public class VaccinationController {
             if (result.isEmpty()){
                 System.out.println("Nincs ilyen TAJ számmal regisztrált személy!");
             }
+
+            System.out.println(LINE);
         } while(result.isEmpty());
+
 
         return result.get();
     }
 
-    private void vaccinationFailure() {
+    private void vaccinationFailure(){
+        System.out.println(LINE);
+        System.out.println("Oltás meghiúsulás regisztrálása");
+        System.out.println(LINE);
+
+        Citizen citizen = this.getCitizenBySsn();
+        String note = this.getNoteOfVaccinationFailure();
+
+        Vaccination vaccination = new Vaccination(LocalDateTime.now(), VaccinationStatus.FAILED, note);
+        vaccinationService.save(vaccination, citizen.getId());
+        System.out.println("Meghiúsulás regisztrálva.");
+        System.out.println(LINE);
+    }
+
+    private String getNoteOfVaccinationFailure() {
+        String input;
+        do {
+            System.out.print("Adja meg az oltás meghiúsulásának az okát: ");
+            input = scanner.nextLine();
+
+            if (input.isBlank()){
+                System.out.println("A meghiúsulás oka nem lehet üres!");
+            }
+
+            System.out.println(LINE);
+        }while(input.isBlank());
+
+        return input;
     }
 
     private void report() {
