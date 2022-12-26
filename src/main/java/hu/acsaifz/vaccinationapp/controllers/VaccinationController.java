@@ -1,22 +1,17 @@
 package hu.acsaifz.vaccinationapp.controllers;
 
-import hu.acsaifz.vaccinationapp.models.Citizen;
-import hu.acsaifz.vaccinationapp.models.Vaccination;
-import hu.acsaifz.vaccinationapp.models.VaccinationStatus;
-import hu.acsaifz.vaccinationapp.models.Vaccine;
+import hu.acsaifz.vaccinationapp.models.*;
 import hu.acsaifz.vaccinationapp.services.*;
 import org.springframework.dao.DuplicateKeyException;
 
 import javax.sql.DataSource;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.Scanner;
+import java.util.*;
 
 public class VaccinationController {
     private static final String LINE = "----------------------------------";
+    private static final String REPORT_LINE = "+--------------------+--------------------+--------------------+--------------------+";
     private final Scanner scanner = new Scanner(System.in);
     private final ValidatorService validatorService = new ValidatorService();
     private final CityService cityService;
@@ -375,6 +370,20 @@ public class VaccinationController {
     }
 
     private void report() {
+        Map<String, Report> reports = citizenService.getAllVaccinatedCitizensCountCategorizedByVaccinationsCount();
+
+        System.out.println(REPORT_LINE);
+        System.out.printf("| %-19s| %-19s| %-19s| %-19s|%n", "Irányítószám", "Oltatlanok", "Egyszer oltottak", "Kétszer oltottak");
+        System.out.println(REPORT_LINE);
+        for (Map.Entry<String, Report> reportEntry: reports.entrySet()){
+            String zipCode = reportEntry.getKey();
+            Report report = reportEntry.getValue();
+
+            System.out.printf("| %-19s| %-19d| %-19d| %-19d|%n", zipCode, report.getNumberOfNotVaccinated(),
+                    report.getNumberOfOnceVaccinated(), report.getNumberOfTwiceVaccinated());
+            System.out.println(REPORT_LINE);
+        }
+
     }
 
     private boolean exit() {

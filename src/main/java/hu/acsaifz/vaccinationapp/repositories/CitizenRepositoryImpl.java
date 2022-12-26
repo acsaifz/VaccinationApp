@@ -1,9 +1,12 @@
 package hu.acsaifz.vaccinationapp.repositories;
 
 import hu.acsaifz.vaccinationapp.models.Citizen;
+import hu.acsaifz.vaccinationapp.models.Report;
 import hu.acsaifz.vaccinationapp.models.VaccinationStatus;
 import hu.acsaifz.vaccinationapp.repositories.mapper.CitizenMapper;
+import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.ResultSetExtractor;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
@@ -14,9 +17,10 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import javax.sql.DataSource;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 public class CitizenRepositoryImpl implements CitizenRepository{
     private final JdbcTemplate jdbcTemplate;
@@ -90,8 +94,7 @@ public class CitizenRepositoryImpl implements CitizenRepository{
                         "FROM `vaccinations` " +
                         "WHERE `vaccinations`.`status` = ? " +
                     ") AS `vaccinations` " +
-                    "ON `citizens`.`id` = `vaccinations`.`citizen_id` " +
-                    "WHERE `citizens`.`zip` = ? " +
+                    "ON `citizens`.`id` = `vaccinations`.`citizen_id` " +                    "WHERE `citizens`.`zip` = ? " +
                     "GROUP BY `citizens`.`id`, `citizens`.`age`, `citizens`.`name` " +
                     "HAVING COUNT(`vaccinations`.`citizen_id`) < 2 AND (" +
                         "DATEDIFF(CURRENT_TIMESTAMP(), MAX(`vaccinations`.`vaccination_date`)) >= 15 " +
@@ -111,5 +114,36 @@ public class CitizenRepositoryImpl implements CitizenRepository{
         }
 
         return Optional.of(result.get(0));
+    }
+
+    @Override
+    public Map<String, Report> getAllVaccinatedCitizensCountCategorizedByVaccinationsCount() {
+        return jdbcTemplate.query("SELECT `citizens`.`zip`, " +
+                "ifnull(`not_vaccinated`.`count_of_not_vaccinated`,0) as `count_of_not_vaccinated`, " +
+                "ifnull(`once_vaccinated`.`count_of_once_vaccinated`,0) as `count_of_once_vaccinated`, " +
+                "ifnull(`twice_vaccinated`.`count_of_twice_vaccinated`,0) as `count_of_twice_vaccinated` " +
+                "FROM `citizens` " +
+                "LEFT JOIN `not_vaccinated` " +
+                "ON `citizens`.`zip` = `not_vaccinated`.`zip` " +
+                "LEFT JOIN `once_vaccinated` " +
+                "ON `citizens`.`zip` = `once_vaccinated`.`zip` " +
+                "LEFT JOIN `twice_vaccinated` " +
+                "ON `citizens`.`zip` = `twice_vaccinated`.`zip` " +
+                "GROUP BY `citizens`.`zip` ", (ResultSetExtractor<Map<String, Report>>) rs -> {
+
+                    HashMap<String, Report> result = new HashMap<>();
+
+                    while (rs.next()){
+                        Report report = new Report(
+                                rs.getInt("count_of_not_vaccinated"),
+                                rs.getInt("count_of_once_vaccinated"),
+                                rs.getInt("count_of_twice_vaccinated")
+                        );
+
+                        result.put(rs.getString("zip"),report);
+                    }
+
+                    return result;
+        });
     }
 }

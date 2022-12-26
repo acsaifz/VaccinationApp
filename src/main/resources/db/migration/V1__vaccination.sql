@@ -34,8 +34,46 @@ CREATE TABLE `cities` (
 	PRIMARY KEY (id)
 );
 
+CREATE VIEW `not_vaccinated` AS
+    SELECT `citizens`.`zip`, count(`citizens`.`id`) AS `count_of_not_vaccinated`
+    FROM `citizens`
+    LEFT JOIN (
+        SELECT `citizen_id`
+        FROM `vaccinations`
+        WHERE `vaccinations`.`status` = 'SUCCESSFUL'
+    ) AS `vaccinations`
+    ON `citizens`.`id` = `vaccinations`.`citizen_id`
+    WHERE `vaccinations`.`citizen_id` IS NULL
+    GROUP BY `citizens`.`zip`;
+
+CREATE VIEW `once_vaccinated` AS
+    SELECT `citizens`.`zip`, count(`citizens`.`id`) AS `count_of_once_vaccinated`
+    FROM `citizens`
+    INNER JOIN (
+        SELECT `citizen_id`
+        FROM `vaccinations`
+        WHERE `vaccinations`.`status` = 'SUCCESSFUL'
+        GROUP BY `citizen_id`
+        HAVING count(`citizen_id`) = 1
+    ) AS `vaccinations`
+    ON `citizens`.`id` = `vaccinations`.`citizen_id`
+    GROUP BY `citizens`.`zip`;
+
+CREATE VIEW `twice_vaccinated` AS
+    SELECT `citizens`.`zip`, count(`citizens`.`id`) AS `count_of_twice_vaccinated`
+    FROM `citizens`
+    INNER JOIN (
+        SELECT `citizen_id`
+        FROM `vaccinations`
+        WHERE `vaccinations`.`status` = 'SUCCESSFUL'
+        GROUP BY `citizen_id`
+        HAVING count(`citizen_id`) = 2
+    ) AS `vaccinations`
+    ON `citizens`.`id` = `vaccinations`.`citizen_id`
+    GROUP BY `citizens`.`zip`;
+
 INSERT INTO `vaccines` (name) VALUES
-	('Pfizer-BioNtech'),
+	('Pfizer-BioNTech'),
 	('Moderna'),
 	('AstraZeneca'),
 	('Janssen'),

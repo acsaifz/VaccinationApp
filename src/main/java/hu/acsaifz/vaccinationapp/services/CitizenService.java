@@ -1,6 +1,7 @@
 package hu.acsaifz.vaccinationapp.services;
 
 import hu.acsaifz.vaccinationapp.models.Citizen;
+import hu.acsaifz.vaccinationapp.models.Report;
 import hu.acsaifz.vaccinationapp.models.Vaccination;
 import hu.acsaifz.vaccinationapp.repositories.CitizenRepository;
 import hu.acsaifz.vaccinationapp.repositories.CitizenRepositoryImpl;
@@ -134,5 +135,9 @@ public class CitizenService {
         }
 
         return result;
+    }
+
+    public Map<String, Report> getAllVaccinatedCitizensCountCategorizedByVaccinationsCount(){
+        return citizenRepository.getAllVaccinatedCitizensCountCategorizedByVaccinationsCount();
     }
 }
